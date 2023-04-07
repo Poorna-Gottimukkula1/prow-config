@@ -1,0 +1,26 @@
+# See the OWNERS docs at https://go.k8s.io/owners
+
+reviewers:
+- CecileRobertMichon
+- davidewatson
+- detiber
+- fabriziopandini
+- JoelSpeed
+- justinsb
+- sbueringer
+- killianmuldoon
+- timothysc
+- vincepri
+approvers:
+- CecileRobertMichon
+- davidewatson
+- detiber
+- fabriziopandini
+- justinsb
+- sbueringer
+- killianmuldoon
+- timothysc
+- vincepri
+emeritus_approvers:
+- luxas
+- ncdc
