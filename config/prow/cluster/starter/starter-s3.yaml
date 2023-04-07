@@ -15,7 +15,7 @@ metadata:
 data:
   plugins.yaml: |
     plugins:
-      << your_github_org >>:
+      Prow-Cluster-Bot:
         plugins:
         - approve
         - assign
@@ -31,24 +31,6 @@ data:
         - verify-owners
         - wip
         - yuks
----
-apiVersion: v1
-kind: Secret
-metadata:
-  namespace: prow
-  name: github-token
-stringData:
-  cert: <<insert-downloaded-cert-here>>
-  appid: <<insert-the-app-id-here>>
----
-apiVersion: v1
-kind: Secret
-metadata:
-  namespace: prow
-  name: hmac-token
-stringData:
-  # Generate via `openssl rand -hex 20`. This is the secret used in the GitHub webhook configuration
-  hmac: << insert-hmac-token-here >>
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -87,16 +69,16 @@ data:
 
     plank:
       job_url_prefix_config:
-        "*": https://prow.<< your-domain.com >>/view/
+        "*": https://prow.vm-1291.onecloud.stglabs.ibm.com/view/
       report_templates:
         '*': >-
-            [Full PR test history](https://prow.<< your-domain.com >>/pr-history?org={{.Spec.Refs.Org}}&repo={{.Spec.Refs.Repo}}&pr={{with index .Spec.Refs.Pulls 0}}{{.Number}}{{end}}).
-            [Your PR dashboard](https://prow.<< your-domain.com >>/pr?query=is:pr+state:open+author:{{with
+            [Full PR test history](https://prow.vm-1291.onecloud.stglabs.ibm.com/pr-history?org={{.Spec.Refs.Org}}&repo={{.Spec.Refs.Repo}}&pr={{with index .Spec.Refs.Pulls 0}}{{.Number}}{{end}}).
+            [Your PR dashboard](https://prow.vm-1291.onecloud.stglabs.ibm.com/pr?query=is:pr+state:open+author:{{with
             index .Spec.Refs.Pulls 0}}{{.Author}}{{end}}).
       default_decoration_configs:
         "*":
           gcs_configuration:
-            bucket: s3://prow-logs
+            bucket: s3://cluster-bot-prow-bucket
             path_strategy: explicit
           s3_credentials_secret: s3-credentials
           utility_images:
@@ -116,7 +98,7 @@ data:
         - do-not-merge/work-in-progress
         - do-not-merge/invalid-owners-file
         orgs:
-        - << your_github_org >>
+        - Prow-Cluster-Bot
 
     decorate_all_jobs: true
     periodics:
@@ -485,7 +467,7 @@ spec:
       port:
         number: 80
   rules:
-  - host: prow.<< your-domain.com >>
+  - host: prow.vm-1291.onecloud.stglabs.ibm.com
     http:
       paths:
       - path: /
@@ -892,7 +874,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 100Gi
+      storage: 5Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -919,7 +901,7 @@ spec:
         image: gcr.io/k8s-prow/ghproxy:v20230406-d42c989ab5
         args:
         - --cache-dir=/cache
-        - --cache-sizeGB=99
+        - --cache-sizeGB=2
         - --push-gateway=pushgateway
         - --serve-metrics=true
         ports:
