@@ -69,11 +69,11 @@ data:
 
     plank:
       job_url_prefix_config:
-        "*": https://prow.vm-1291.onecloud.stglabs.ibm.com/view/
+        "*": https://prow.cicd-ibm-ppc64le.com/view/
       report_templates:
         '*': >-
-            [Full PR test history](https://prow.vm-1291.onecloud.stglabs.ibm.com/pr-history?org={{.Spec.Refs.Org}}&repo={{.Spec.Refs.Repo}}&pr={{with index .Spec.Refs.Pulls 0}}{{.Number}}{{end}}).
-            [Your PR dashboard](https://prow.vm-1291.onecloud.stglabs.ibm.com/pr?query=is:pr+state:open+author:{{with
+            [Full PR test history](https://prow.cicd-ibm-ppc64le.com/pr-history?org={{.Spec.Refs.Org}}&repo={{.Spec.Refs.Repo}}&pr={{with index .Spec.Refs.Pulls 0}}{{.Number}}{{end}}).
+            [Your PR dashboard](https://prow.cicd-ibm-ppc64le.com/pr?query=is:pr+state:open+author:{{with
             index .Spec.Refs.Pulls 0}}{{.Author}}{{end}}).
       default_decoration_configs:
         "*":
@@ -455,7 +455,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-  - host: prow.vm-1291.onecloud.stglabs.ibm.com
+  - host: prow.cicd-ibm-ppc64le.com
     http:
       paths:
       - path: /
