@@ -1,0 +1,8 @@
+periodics:
+  - name: hypershift-deployment
+    interval: 2m
+    agent: kubernetes
+    spec:
+      containers:
+        - image: alpine
+          command: ["/bin/date"]

@@ -141,6 +141,7 @@ spec:
         args:
         - --dry-run=false
         - --config-path=/etc/config/config.yaml
+        - --job-config-path=/etc/job-config
         - --github-endpoint=https://api.github.com
         - --github-app-id=$(GITHUB_APP_ID)
         - --github-app-private-key-path=/etc/github/cert
@@ -162,6 +163,9 @@ spec:
           readOnly: true
         - name: config
           mountPath: /etc/config
+          readOnly: true
+        - name: job-config
+          mountPath: /etc/job-config
           readOnly: true
         - name: plugins
           mountPath: /etc/plugins
@@ -189,6 +193,9 @@ spec:
       - name: config
         configMap:
           name: config
+      - name: job-config
+        configMap:
+          name: job-config
       - name: plugins
         configMap:
           name: plugins
@@ -227,15 +234,22 @@ spec:
         image: gcr.io/k8s-prow/sinker:v20230406-d42c989ab5
         args:
         - --config-path=/etc/config/config.yaml
+        - --job-config-path=/etc/job-config
         - --dry-run=false
         volumeMounts:
         - name: config
           mountPath: /etc/config
           readOnly: true
+        - name: job-config
+          mountPath: /etc/job-config
+          readOnly: true
       volumes:
       - name: config
         configMap:
           name: config
+      - name: job-config
+        configMap:
+          name: job-config
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -266,6 +280,7 @@ spec:
         image: gcr.io/k8s-prow/deck:v20230406-d42c989ab5
         args:
         - --config-path=/etc/config/config.yaml
+        - --job-config-path=/etc/job-config
         - --plugin-config=/etc/plugins/plugins.yaml
         - --tide-url=http://tide/
         - --hook-url=http://hook:8888/plugin-help
@@ -286,6 +301,9 @@ spec:
         volumeMounts:
         - name: config
           mountPath: /etc/config
+          readOnly: true
+        - name: job-config
+          mountPath: /etc/job-config
           readOnly: true
         - name: github-token
           mountPath: /etc/github
@@ -313,6 +331,9 @@ spec:
       - name: config
         configMap:
           name: config
+      - name: job-config
+        configMap:
+          name: job-config
       - name: github-token
         secret:
           secretName: github-token
@@ -362,14 +383,21 @@ spec:
         args:
         - --dry-run=false
         - --config-path=/etc/config/config.yaml
+        - --job-config-path=/etc/job-config
         volumeMounts:
         - name: config
           mountPath: /etc/config
+          readOnly: true
+        - name: job-config
+          mountPath: /etc/job-config
           readOnly: true
       volumes:
       - name: config
         configMap:
           name: config
+      - name: job-config
+        configMap:
+          name: job-config
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -397,6 +425,7 @@ spec:
         args:
         - --dry-run=false
         - --config-path=/etc/config/config.yaml
+        - --job-config-path=/etc/job-config
         - --github-endpoint=https://api.github.com
         - --s3-credentials-file=/etc/s3-credentials/service-account.json
         - --status-path=s3://tide/tide-status
@@ -419,6 +448,9 @@ spec:
         - name: config
           mountPath: /etc/config
           readOnly: true
+        - name: job-config
+          mountPath: /etc/job-config
+          readOnly: true
         - name: s3-credentials
           mountPath: /etc/s3-credentials
           readOnly: true
@@ -429,6 +461,9 @@ spec:
       - name: config
         configMap:
           name: config
+      - name: job-config
+        configMap:
+          name: job-config
       - name: s3-credentials
         secret:
           secretName: s3-credentials
@@ -500,6 +535,7 @@ spec:
         - --continue-on-error=true
         - --plugin-config=/etc/plugins/plugins.yaml
         - --config-path=/etc/config/config.yaml
+        - --job-config-path=/etc/job-config
         - --github-endpoint=https://api.github.com
         - --s3-credentials-file=/etc/s3-credentials/service-account.json
         - --status-path=s3://status-reconciler/status-reconciler-status
@@ -518,6 +554,9 @@ spec:
         - name: config
           mountPath: /etc/config
           readOnly: true
+        - name: job-config
+          mountPath: /etc/job-config
+          readOnly: true
         - name: plugins
           mountPath: /etc/plugins
           readOnly: true
@@ -531,6 +570,9 @@ spec:
       - name: config
         configMap:
           name: config
+      - name: job-config
+        configMap:
+          name: job-config
       - name: plugins
         configMap:
           name: plugins
@@ -849,77 +891,6 @@ subjects:
 - kind: ServiceAccount
   name: "statusreconciler"
 ---
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  namespace: prow
-  labels:
-    app: ghproxy
-  name: ghproxy
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  namespace: prow
-  name: ghproxy
-  labels:
-    app: ghproxy
-spec:
-  selector:
-    matchLabels:
-      app: ghproxy
-  strategy:
-    type: Recreate
-  # GHProxy does not support HA
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        app: ghproxy
-    spec:
-      containers:
-      - name: ghproxy
-        image: gcr.io/k8s-prow/ghproxy:v20230406-d42c989ab5
-        args:
-        - --cache-dir=/cache
-        - --cache-sizeGB=2
-        - --push-gateway=pushgateway
-        - --serve-metrics=true
-        ports:
-        - containerPort: 8888
-        volumeMounts:
-        - name: cache
-          mountPath: /cache
-      volumes:
-      - name: cache
-        persistentVolumeClaim:
-          claimName: ghproxy
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app: ghproxy
-  namespace: prow
-  name: ghproxy
-spec:
-  ports:
-  - name: main
-    port: 80
-    protocol: TCP
-    targetPort: 8888
-  - name: metrics
-    port: 9090
-  selector:
-    app: ghproxy
-  type: ClusterIP
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -943,7 +914,7 @@ spec:
         args:
         - --dry-run=false
         - --config-path=/etc/config/config.yaml
-        - --github-endpoint=http://ghproxy
+        - --job-config-path=/etc/job-config
         - --github-endpoint=https://api.github.com
         - --enable-controller=plank
         - --github-app-id=$(GITHUB_APP_ID)
@@ -962,6 +933,9 @@ spec:
         - name: config
           mountPath: /etc/config
           readOnly: true
+        - name: job-config
+          mountPath: /etc/job-config
+          readOnly: true
       volumes:
       - name: github-token
         secret:
@@ -969,6 +943,9 @@ spec:
       - name: config
         configMap:
           name: config
+      - name: job-config
+        configMap:
+          name: job-config
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -1093,8 +1070,8 @@ spec:
         args:
         - --blob-storage-workers=10
         - --config-path=/etc/config/config.yaml
+        - --job-config-path=/etc/job-config
         - --s3-credentials-file=/etc/s3-credentials/service-account.json
-        - --github-endpoint=http://ghproxy
         - --github-endpoint=https://api.github.com
         - --github-workers=10
         - --kubernetes-blob-storage-workers=10
@@ -1110,6 +1087,9 @@ spec:
         - name: config
           mountPath: /etc/config
           readOnly: true
+        - name: job-config
+          mountPath: /etc/job-config
+          readOnly: true
         - name: github-token
           mountPath: /etc/github
           readOnly: true
@@ -1120,6 +1100,9 @@ spec:
       - name: config
         configMap:
           name: config
+      - name: job-config
+        configMap:
+          name: job-config
       - name: github-token
         secret:
           secretName: github-token
