@@ -1,8 +1,61 @@
 periodics:
-  - name: hypershift-deployment
-    interval: 2m
+  - name: test-hypershift-deployment
+    interval: 20h
     agent: kubernetes
     spec:
       containers:
-        - image: alpine
-          command: ["/bin/date"]
+        - name: deploy-hypershift
+          image: quay.io/powercloud/inbound-agent:4.10-3.2
+          command:
+            - /bin/bash
+          args:
+            - -c
+            - |
+              echo "Welcome to hypershift e2e"
+              export MANAGEMENT_CLUSTER=neha-prow-hypershift
+              export REGION=tok
+              export ZONE=tok04
+              export VPC_REGION=jp-tok
+              export RESOURCE_GROUP=ibm-hypershift-dev
+              export BASEDOMAIN=hypershift-ppc64le.com
+              export PROC_TYPE=dedicated
+              export PROCESSORS=1
+              export DUMP_DIR=/root/hypershift-e2e
+              export GO_VERSION=1.18
+              cd /root
+              git clone https://github.com/ppc64le-cloud/hypershift-hacks
+              set +x pull-secret
+              export RELEASE_IMAGE=$(curl https://multi.ocp.releases.ci.openshift.org/api/v1/releasestream/4.12.0-0.nightly-multi/latest | jq ".pullSpec" | tr -d '"')
+              mkdir ${DUMP_DIR}
+              curl https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz -o oc.tar.gz
+              tar xzf oc.tar.gz
+              mv oc /usr/local/bin/
+              mv kubectl /usr/local/bin/
+              ibmcloud update -f
+              ibmcloud plugin update --all
+              apt update -y
+              apt install unzip -y
+              curl https://dl.google.com/go/go"${GO_VERSION}".linux-amd64.tar.gz -o go"${GO_VERSION}".linux-amd64.tar.gz
+              tar -C /usr/local -xzf go"${GO_VERSION}".linux-amd64.tar.gz
+              mkdir ~/.docker
+              cat pull-secret > ~/.docker/config.json
+              nerdctl pull ${RELEASE_IMAGE}
+              export PATH=$PATH:/usr/local/go/bin
+              cd /root/hypershift-hacks/jenkins
+              python3 e2e.py
+              if [ $? -ne 0 ]; then
+                 echo "hypershift E2e failed" && exit 1
+              fi
+          env:
+          - name: IBMCLOUD_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: api-key
+                key: value
+          volumeMounts:
+          - name: pull-secret
+            mountPath: /root
+            readOnly: true
+      volumes:
+      - name: pull-secret
+        secret:
