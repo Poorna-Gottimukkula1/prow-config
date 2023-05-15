@@ -59,3 +59,4 @@ periodics:
       volumes:
       - name: pull-secret
         secret:
+          secretName: pull-secret
