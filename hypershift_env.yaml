@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hyp-env
+  namespace: test-pods
+data:
+  MANAGEMENT_CLUSTER: neha-prow-hypershift
+  REGION: tok
+  ZONE: tok04
+  VPC_REGION: jp-tok
+  RESOURCE_GROUP: ibm-hypershift-dev
+  BASEDOMAIN: hypershift-ppc64le.com
+  PROC_TYPE: dedicated
+  PROCESSORS: "1"
+  DUMP_DIR: /root/hypershift-e2e
+  GO_VERSION: "1.18"
+  PULL_SECRET: /var/hypershift-secret

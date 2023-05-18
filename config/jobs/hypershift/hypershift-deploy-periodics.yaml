@@ -6,23 +6,15 @@ periodics:
       containers:
         - name: deploy-hypershift
           image: quay.io/powercloud/inbound-agent:4.10-3.2
+          envFrom:
+            - configMapRef:
+                name: hyp-env
           command:
             - /bin/bash
           args:
             - -c
             - |
               echo "Welcome to hypershift e2e"
-              export MANAGEMENT_CLUSTER=neha-prow-hypershift
-              export REGION=tok
-              export ZONE=tok04
-              export VPC_REGION=jp-tok
-              export RESOURCE_GROUP=ibm-hypershift-dev
-              export BASEDOMAIN=hypershift-ppc64le.com
-              export PROC_TYPE=dedicated
-              export PROCESSORS=1
-              export DUMP_DIR=/root/hypershift-e2e
-              export GO_VERSION=1.18
-              export PULL_SECRET=/var/hypershift-secret
               mkdir ${DUMP_DIR}
               cd /root
               git clone https://github.com/ppc64le-cloud/hypershift-hacks
