@@ -18,7 +18,6 @@ periodics:
               mkdir ${DUMP_DIR}
               cd /root
               git clone https://github.com/ppc64le-cloud/hypershift-hacks
-              set +x $PULL_SECRET
               export RELEASE_IMAGE=$(curl https://multi.ocp.releases.ci.openshift.org/api/v1/releasestream/4.12.0-0.nightly-multi/latest | jq ".pullSpec" | tr -d '"')
               mkdir ${DUMP_DIR}
               curl https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz -o oc.tar.gz
