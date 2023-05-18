@@ -13,5 +13,5 @@ data:
   PROC_TYPE: dedicated
   PROCESSORS: "1"
   DUMP_DIR: /root/hypershift-e2e
-  GO_VERSION: "1.18"
+  GO_VERSION: "1.19"
   PULL_SECRET: /var/hypershift-secret
