@@ -15,7 +15,7 @@ metadata:
 data:
   plugins.yaml: |
     plugins:
-      Prow-Cluster-Bot:
+      Poorna-Gottimukkula1:
         plugins:
         - approve
         - assign
@@ -47,6 +47,10 @@ data:
         "*": true
 
     deck:
+     branding:
+      header_color: "#3a0052" # Falco Teal
+      logo: "/static/extensions/favicon.png"
+      favicon: "/static/extensions/favicon.png"
      spyglass:
        lenses:
        - lens:
@@ -69,11 +73,11 @@ data:
 
     plank:
       job_url_prefix_config:
-        "*": https://prow.cicd-ibm-ppc64le.com/view/
+        "*": https://c28312v1.fyre.ibm.com/view/
       report_templates:
         '*': >-
-            [Full PR test history](https://prow.cicd-ibm-ppc64le.com/pr-history?org={{.Spec.Refs.Org}}&repo={{.Spec.Refs.Repo}}&pr={{with index .Spec.Refs.Pulls 0}}{{.Number}}{{end}}).
-            [Your PR dashboard](https://prow.cicd-ibm-ppc64le.com/pr?query=is:pr+state:open+author:{{with
+            [Full PR test history](https://c28312v1.fyre.ibm.com/pr-history?org={{.Spec.Refs.Org}}&repo={{.Spec.Refs.Repo}}&pr={{with index .Spec.Refs.Pulls 0}}{{.Number}}{{end}}).
+            [Your PR dashboard](https://c28312v1.fyre.ibm.com/pr?query=is:pr+state:open+author:{{with
             index .Spec.Refs.Pulls 0}}{{.Author}}{{end}}).
       default_decoration_configs:
         "*":
@@ -98,7 +102,7 @@ data:
         - do-not-merge/work-in-progress
         - do-not-merge/invalid-owners-file
         orgs:
-        - Prow-Cluster-Bot
+        - Poorna-Gottimukkula1
 
     decorate_all_jobs: true
     periodics:
@@ -107,7 +111,7 @@ data:
       name: echo-test
       spec:
         containers:
-        - image: alpine
+        - image: quay.io/jitesoft/alpine:3.18.5
           command: ["/bin/date"]
 ---
 apiVersion: apps/v1
@@ -118,7 +122,7 @@ metadata:
   labels:
     app: hook
 spec:
-  replicas: 2
+  replicas: 1
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -143,14 +147,7 @@ spec:
         - --config-path=/etc/config/config.yaml
         - --job-config-path=/etc/job-config
         - --github-endpoint=https://api.github.com
-        - --github-app-id=$(GITHUB_APP_ID)
-        - --github-app-private-key-path=/etc/github/cert
-        env:
-        - name: GITHUB_APP_ID
-          valueFrom:
-            secretKeyRef:
-              name: github-token
-              key: appid
+        - --github-token-path=/etc/github/token
         ports:
           - name: http
             containerPort: 8888
@@ -259,7 +256,7 @@ metadata:
   labels:
     app: deck
 spec:
-  replicas: 2
+  replicas: 1
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -287,14 +284,7 @@ spec:
         - --github-endpoint=https://api.github.com
         - --s3-credentials-file=/etc/s3-credentials/service-account.json
         - --spyglass=true
-        - --github-app-id=$(GITHUB_APP_ID)
-        - --github-app-private-key-path=/etc/github/cert
-        env:
-        - name: GITHUB_APP_ID
-          valueFrom:
-            secretKeyRef:
-              name: github-token
-              key: appid
+        - --github-token-path=/etc/github/token
         ports:
           - name: http
             containerPort: 8080
@@ -313,6 +303,9 @@ spec:
           readOnly: true
         - name: s3-credentials
           mountPath: /etc/s3-credentials
+          readOnly: true
+        - name: branding
+          mountPath: /var/run/ko/static/extensions
           readOnly: true
         livenessProbe:
           httpGet:
@@ -343,6 +336,10 @@ spec:
       - name: s3-credentials
         secret:
           secretName: s3-credentials
+      - name: branding
+        configMap:
+          defaultMode: 420
+          name: branding
 ---
 apiVersion: v1
 kind: Service
@@ -352,6 +349,7 @@ metadata:
 spec:
   selector:
     app: deck
+  type: NodePort
   ports:
   - port: 80
     targetPort: 8080
@@ -430,14 +428,7 @@ spec:
         - --s3-credentials-file=/etc/s3-credentials/service-account.json
         - --status-path=s3://tide/tide-status
         - --history-uri=s3://tide/tide-history.json
-        - --github-app-id=$(GITHUB_APP_ID)
-        - --github-app-private-key-path=/etc/github/cert
-        env:
-        - name: GITHUB_APP_ID
-          valueFrom:
-            secretKeyRef:
-              name: github-token
-              key: appid
+        - --github-token-path=/etc/github/token
         ports:
           - name: http
             containerPort: 8888
@@ -490,7 +481,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-  - host: prow.cicd-ibm-ppc64le.com
+  - host: c28312v1.fyre.ibm.com
     http:
       paths:
       - path: /
@@ -539,14 +530,7 @@ spec:
         - --github-endpoint=https://api.github.com
         - --s3-credentials-file=/etc/s3-credentials/service-account.json
         - --status-path=s3://status-reconciler/status-reconciler-status
-        - --github-app-id=$(GITHUB_APP_ID)
-        - --github-app-private-key-path=/etc/github/cert
-        env:
-        - name: GITHUB_APP_ID
-          valueFrom:
-            secretKeyRef:
-              name: github-token
-              key: appid
+        - --github-token-path=/etc/github/token
         volumeMounts:
         - name: github-token
           mountPath: /etc/github
@@ -917,14 +901,7 @@ spec:
         - --job-config-path=/etc/job-config
         - --github-endpoint=https://api.github.com
         - --enable-controller=plank
-        - --github-app-id=$(GITHUB_APP_ID)
-        - --github-app-private-key-path=/etc/github/cert
-        env:
-        - name: GITHUB_APP_ID
-          valueFrom:
-            secretKeyRef:
-              name: github-token
-              key: appid
+        - --github-token-path=/etc/github/token
         image: gcr.io/k8s-prow/prow-controller-manager:v20230406-d42c989ab5
         volumeMounts:
         - name: github-token
@@ -960,16 +937,6 @@ metadata:
   name: prow-controller-manager
 rules:
   - apiGroups:
-    - "prow.k8s.io"
-    resources:
-    - prowjobs
-    verbs:
-    - get
-    - list
-    - watch
-    - update
-    - patch
-  - apiGroups:
     - coordination.k8s.io
     resources:
     - leases
@@ -985,21 +952,31 @@ rules:
     verbs:
     - create
   - apiGroups:
-    - ""
+      - "prow.k8s.io"
     resources:
-    - configmaps
-    resourceNames:
-    - prow-controller-manager-leader-lock
+      - prowjobs
     verbs:
-    - get
-    - update
+      - get
+      - list
+      - watch
+      - update
+      - patch
   - apiGroups:
-    - ""
+      - ""
     resources:
-    - configmaps
-    - events
+      - configmaps
+    resourceNames:
+      - prow-controller-manager-leader-lock
     verbs:
-    - create
+      - get
+      - update
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+      - events
+    verbs:
+      - create
 ---
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
@@ -1013,6 +990,7 @@ rules:
       - pods
     verbs:
       - delete
+      - get
       - list
       - watch
       - create
@@ -1075,14 +1053,7 @@ spec:
         - --github-endpoint=https://api.github.com
         - --github-workers=10
         - --kubernetes-blob-storage-workers=10
-        - --github-app-id=$(GITHUB_APP_ID)
-        - --github-app-private-key-path=/etc/github/cert
-        env:
-        - name: GITHUB_APP_ID
-          valueFrom:
-            secretKeyRef:
-              name: github-token
-              key: appid
+        - --github-token-path=/etc/github/token
         volumeMounts:
         - name: config
           mountPath: /etc/config
